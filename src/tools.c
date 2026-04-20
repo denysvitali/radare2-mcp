@@ -1194,9 +1194,16 @@ char *tools_call(ServerState *ss, const char *tool_name, RJson *tool_args) {
 			goto cleanup;
 		}
 
+		const char *arch = r_json_get_str (tool_args, "arch");
+		int bits = 0;
+		const RJson *bits_json = r_json_get (tool_args, "bits");
+		if (bits_json && bits_json->type == R_JSON_INTEGER) {
+			bits = (int)bits_json->num.s_value;
+		}
+
 		char *filteredpath = strdup (filepath);
 		r_str_replace_ch (filteredpath, '`', 0, true);
-		bool success = r2_open_file (ss, filteredpath);
+		bool success = r2_open_file (ss, filteredpath, arch, bits);
 		free (filteredpath);
 		result = jsonrpc_tooltext_response (success? "File opened successfully.": "Failed to open file.");
 		goto cleanup;

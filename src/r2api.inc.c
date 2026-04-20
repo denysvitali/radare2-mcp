@@ -135,7 +135,7 @@ char *r2mcp_cmdf(ServerState *ss, const char *fmt, ...) {
 	return res;
 }
 
-R_IPI bool r2_open_file(ServerState *ss, const char *filepath) {
+R_IPI bool r2_open_file(ServerState *ss, const char *filepath, const char *arch, int bits) {
 	R_LOG_INFO ("Attempting to open file: %s\n", filepath);
 
 	// Security checks common to both local and HTTP modes
@@ -206,6 +206,20 @@ R_IPI bool r2_open_file(ServerState *ss, const char *filepath) {
 	ss->rstate.current_file = strdup (filepath);
 	ss->rstate.file_opened = true;
 	r2state_sandbox_settings (ss, core);
+
+	if (arch) {
+		char *cmd = r_str_newf ("e asm.arch=%s", arch);
+		R_LOG_INFO ("Setting architecture: %s", cmd);
+		r_core_cmd0 (core, cmd);
+		free (cmd);
+	}
+	if (bits > 0) {
+		char *cmd = r_str_newf ("e asm.bits=%d", bits);
+		R_LOG_INFO ("Setting bits: %d", bits);
+		r_core_cmd0 (core, cmd);
+		free (cmd);
+	}
+
 	R_LOG_INFO ("File opened successfully: %s", filepath);
 
 	return true;
