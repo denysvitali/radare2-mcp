@@ -1267,7 +1267,7 @@ cleanup:
 	return result;
 }
 ToolSpec tool_specs[] = {
-	{ "open_file", "Opens a binary file with radare2 for analysis <think>Call this tool before any other one from r2mcp. Use an absolute file_path</think>", "{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to the file to open\"}},\"required\":[\"file_path\"]}", TOOL_MODE_NORMAL | TOOL_MODE_MINI, NULL },
+	{ "open_file", "Opens a binary file with radare2 for analysis <think>Call this tool before any other one from r2mcp. Use an absolute file_path</think>", "{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to the file to open\"},\"arch\":{\"type\":\"string\",\"description\":\"Architecture (e.g., arm, x86)\"},\"bits\":{\"type\":\"integer\",\"description\":\"Bit width (e.g., 16, 32, 64)\"}},\"required\":[\"file_path\"]}", TOOL_MODE_NORMAL | TOOL_MODE_MINI, NULL },
 	{ "run_javascript", "Executes JavaScript code using radare2's qjs runtime", "{\"type\":\"object\",\"properties\":{\"script\":{\"type\":\"string\",\"description\":\"The JavaScript code to execute\"}},\"required\":[\"script\"]}", TOOL_MODE_NORMAL | TOOL_MODE_MINI | TOOL_MODE_HTTP, tool_run_javascript },
 	{ "run_frida_script", "Executes Frida JavaScript code", "{\"type\":\"object\",\"properties\":{\"script\":{\"type\":\"string\",\"description\":\"The script code to execute\"}},\"required\":[\"script\"]}", TOOL_MODE_FRIDA, tool_run_frida_script },
 	{ "run_command", "Executes a raw radare2 command directly", "{\"type\":\"object\",\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"The radare2 command to execute\"}},\"required\":[\"command\"]}", TOOL_MODE_NORMAL | TOOL_MODE_MINI | TOOL_MODE_HTTP, tool_run_command },
