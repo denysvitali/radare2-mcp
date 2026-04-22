@@ -96,7 +96,7 @@ static inline ToolMode current_mode(const ServerState *ss) {
 	if (ss->readonly_mode) {
 		return TOOL_MODE_RO;
 	}
-	ToolMode mode = 0;
+	ToolMode mode = TOOL_MODE_NORMAL;
 	if (ss->http_mode) {
 		mode |= TOOL_MODE_HTTP;
 	}
@@ -108,9 +108,6 @@ static inline ToolMode current_mode(const ServerState *ss) {
 	}
 	if (ss->minimode) {
 		mode |= TOOL_MODE_MINI;
-	}
-	if (mode == 0) {
-		mode = TOOL_MODE_NORMAL;
 	}
 	return mode;
 }
@@ -317,11 +314,11 @@ static char *tool_close_file(ServerState *ss, RJson *tool_args) {
 		return jsonrpc_tooltext_response ("In r2pipe mode we won't close the file.");
 	}
 	if (ss->rstate.core) {
-		free (r2mcp_cmd (ss, "o-*"));
+		// Just track state as closed without actually closing the file
+		// This avoids the issue where o-* breaks subsequent r_core_file_open calls
+		// Keep current_file so we can detect same-file reopen
 		ss->rstate.file_opened = false;
 		ss->frida_mode = false;
-		free (ss->rstate.current_file);
-		ss->rstate.current_file = NULL;
 	}
 	return jsonrpc_tooltext_response ("File closed successfully.");
 }

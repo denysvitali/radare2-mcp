@@ -167,22 +167,62 @@ R_IPI bool r2_open_file(ServerState *ss, const char *filepath, const char *arch,
 	RCore *core = ss->rstate.core;
 	r_config_set_b (core->config, "cfg.sandbox", false);
 
-	if (ss->rstate.file_opened) {
+	// Check if this file is already open by querying radare2
+	char *o_output = r_core_cmd_str (core, "o");
+	// Check if this specific filepath is already open
+	bool same_file_open = false;
+	if (o_output) {
+		const char *p = o_output;
+		while ((p = strstr(p, filepath)) != NULL) {
+			char c = p[strlen(filepath)];
+			if (c == '\n' || c == ' ' || c == '\0' || c == '\r') {
+				same_file_open = true;
+				break;
+			}
+			p++;
+		}
+	}
+	// Check if a different file is currently open
+	bool different_file_open = o_output && strlen(o_output) > 2;
+	free (o_output);
+
+	// Check if this file is already tracked as open (same file reopen)
+	if (same_file_open && ss->rstate.current_file &&
+	    !strcmp (ss->rstate.current_file, filepath)) {
+		R_LOG_INFO ("File %s is already open", filepath);
+		ss->rstate.file_opened = true;
+		// Still apply arch/bits if specified
+		if (arch) {
+			char *cmd = r_str_newf ("e asm.arch=%s", arch);
+			R_LOG_INFO ("Setting architecture: %s", cmd);
+			r_core_cmd0 (core, cmd);
+			free (cmd);
+		}
+		if (bits > 0) {
+			char *cmd = r_str_newf ("e asm.bits=%d", bits);
+			R_LOG_INFO ("Setting bits: %d", bits);
+			r_core_cmd0 (core, cmd);
+			free (cmd);
+		}
+		return true;
+	}
+
+	// Close previously opened file if there's a different file open in radare2
+	if (different_file_open && !same_file_open) {
 		R_LOG_INFO ("Closing previously opened file: %s", ss->rstate.current_file);
 		r_core_cmd0 (core, "o-*");
 		ss->rstate.file_opened = false;
-		free (ss->rstate.current_file);
+		// Don't free current_file - we need it to detect same-file reopen
 		ss->rstate.current_file = NULL;
-	}
-
-	const bool is_frida = strstr (filepath, "frida://") != NULL;
-	if (is_frida) {
-		ss->frida_mode = true;
-	} else {
-		r_core_cmd0 (core, "e bin.relocs.apply=true");
-		r_core_cmd0 (core, "e bin.cache=true");
-		R_LOG_INFO ("Loading binary information");
-		r_core_cmd0 (core, "ob");
+		// Reinitialize the core to reset state after o-*
+		r2mcp_state_fini (ss);
+		if (!r2mcp_state_init (ss)) {
+			R_LOG_ERROR ("Failed to reinitialize r2 core\n");
+			return false;
+		}
+		core = ss->rstate.core;
+		// Apply same settings as initial state
+		r_config_set_b (core->config, "cfg.sandbox", false);
 	}
 
 	char *cmd = r_str_newf ("'o %s", filepath);
@@ -201,6 +241,16 @@ R_IPI bool r2_open_file(ServerState *ss, const char *filepath, const char *arch,
 		}
 		r_core_bin_load (core, filepath, 0);
 		R_LOG_INFO ("File opened using r_core_file_open");
+	}
+
+	const bool is_frida = strstr (filepath, "frida://") != NULL;
+	if (is_frida) {
+		ss->frida_mode = true;
+	} else {
+		r_core_cmd0 (core, "e bin.relocs.apply=true");
+		r_core_cmd0 (core, "e bin.cache=true");
+		R_LOG_INFO ("Loading binary information");
+		r_core_cmd0 (core, "ob");
 	}
 	free (ss->rstate.current_file);
 	ss->rstate.current_file = strdup (filepath);
