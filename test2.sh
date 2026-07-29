@@ -676,8 +676,7 @@ run_hidden_path_regression() {
 	local hidden_dir="$TMPDIR/.hidden"
 	local req="$TMPDIR/hidden-path.req"
 	local resp="$TMPDIR/hidden-path.resp"
-	local deny_short_resp="$TMPDIR/hidden-path-deny-short.resp"
-	local deny_long_resp="$TMPDIR/hidden-path-deny-long.resp"
+	local deny_resp="$TMPDIR/hidden-path-deny.resp"
 	mkdir -p "$hidden_dir"
 	cp /bin/ls "$hidden_dir/ls"
 	: > "$req"
@@ -686,23 +685,17 @@ run_hidden_path_regression() {
 	append_notification "$req" notifications/initialized '{}'
 	append_tool_call "$req" 2 open_file "$(jq -cn --arg file "$hidden_dir/ls" '{file_path:$file}')"
 	run_session "$req" "$resp"
-	run_session "$req" "$deny_short_resp" -D
-	run_session "$req" "$deny_long_resp" --deny-hidden-paths
+	run_session "$req" "$deny_resp" -D
 
 	local open_hidden
-	local deny_short
-	local deny_long
+	local deny_hidden
 	open_hidden=$(response_by_id "$resp" 2)
-	deny_short=$(response_by_id "$deny_short_resp" 2)
-	deny_long=$(response_by_id "$deny_long_resp" 2)
+	deny_hidden=$(response_by_id "$deny_resp" 2)
 	printf '%s\n' "$open_hidden" | jq -e '.result.content[0].text | contains("File opened")' >/dev/null 2>&1 || {
 		fail "open_file should allow files under hidden directories, got $open_hidden"
 	}
-	printf '%s\n' "$deny_short" | jq -e '.result.content[0].text == "Failed to open file."' >/dev/null 2>&1 || {
-		fail "-D should deny files under hidden directories, got $deny_short"
-	}
-	printf '%s\n' "$deny_long" | jq -e '.result.content[0].text == "Failed to open file."' >/dev/null 2>&1 || {
-		fail "--deny-hidden-paths should deny files under hidden directories, got $deny_long"
+	printf '%s\n' "$deny_hidden" | jq -e '.result.content[0].text == "Failed to open file."' >/dev/null 2>&1 || {
+		fail "-D should deny files under hidden directories, got $deny_hidden"
 	}
 }
 

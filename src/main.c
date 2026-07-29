@@ -40,7 +40,6 @@ void r2mcp_help(void) {
 		" -A         generate and require a random HTTP Bearer auth token\n"
 		" -C [mode]  content mode: text (default), json, structured, both\n"
 		" -D         deny access to paths containing hidden components\n"
-		" --deny-hidden-paths same as -D\n"
 		" -a [token] require HTTP Authorization: Bearer [token] (use 'random' to generate)\n"
 		" -c [cmd]   run those commands before entering the mcp loop\n"
 		" -d [pdc]   select a different decompiler (pdc by default)\n"
@@ -119,18 +118,6 @@ int r2mcp_main(int argc, const char **argv) {
 	const char *dsl_tests = NULL;
 	RList *disabled_tools = NULL;
 	RGetopt opt;
-	int i;
-	for (i = 1; i < argc; i++) {
-		if (!strcmp (argv[i], "--deny-hidden-paths")) {
-			int j;
-			deny_hidden_paths = true;
-			for (j = i; j + 1 < argc; j++) {
-				argv[j] = argv[j + 1];
-			}
-			argc--;
-			i--;
-		}
-	}
 	r_getopt_init (&opt, argc, argv, "AC:a:DE:H:hmvtpd:nc:u:g:l:s:rite:RT:S:P:NLX:");
 	int c;
 	while ((c = r_getopt_next (&opt)) != -1) {
